@@ -1,59 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="da">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DronePizza - Delivery Queue</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-    }
-    h1 {
-      text-align: center;
-    }
-    ul {
-      list-style-type: none;
-      padding: 0;
-    }
-    li {
-      padding: 10px;
-      margin: 5px;
-      border: 1px solid #ddd;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    button {
-      padding: 5px 10px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
-    #create-drone-btn {
-      margin: 20px;
-      padding: 10px 20px;
-      background-color: #007BFF;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    #create-drone-btn:hover {
-      background-color: #0056b3;
-    }
-  </style>
+  <title>DronePizza Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<h1>DronePizza - Delivery Queue</h1>
 
-<!-- Button to create a new drone -->
-<button id="create-drone-btn" onclick="createDrone()">Create New Drone</button>
+<h1>DronePizza Dashboard</h1>
 
-<h2>Unassigned Deliveries</h2>
-<ul id="delivery-list"></ul>
+<div id="deliveries">
+  <h2>Leveringer</h2>
+  <ul id="delivery-list"></ul>
+</div>
+
+<div id="actions">
+  <div>
+    <label for="delivery-address">Adresse:</label>
+    <input type="text" id="delivery-address" placeholder="Indtast adresse">
+    <button id="create-delivery">Opret Levering</button>
+  </div>
+  <div>
+    <button id="create-drone">Opret Drone</button>
+    <span id="drone-message" class="message"></span>
+  </div>
+</div>
 
 <script src="script.js"></script>
 </body>

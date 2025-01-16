@@ -1,83 +1,114 @@
-// Hent leveringer, der ikke er leveret endnu
-async function fetchUnassignedDeliveries() {
-    try {
-        const response = await fetch('http://localhost:8080/deliveries/queue');
-        if (!response.ok) {
-            throw new Error("Error fetching deliveries");
-        }
-        const deliveries = await response.json();
-        console.log("Fetched deliveries:", deliveries);
-        displayDeliveries(deliveries);
-    } catch (error) {
-        console.error("Error fetching deliveries:", error);
-    }
+// Hent elementer fra DOM
+const deliveryList = document.getElementById('delivery-list');
+const createDroneButton = document.getElementById('create-drone');
+const createDeliveryButton = document.getElementById('create-delivery');
+const deliveryAddressInput = document.getElementById('delivery-address');
+const droneMessage = document.getElementById('drone-message');
+
+// Funktion til at opdatere leveringslisten
+function fetchDeliveries() {
+    fetch('http://localhost:8080/deliveries')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Netværksfejl');
+            }
+            return response.json();
+        })
+        .then(data => {
+            deliveryList.innerHTML = '';
+            data.forEach(delivery => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    <span>${delivery.pizza.name || "Ukendt Pizza"} - ${delivery.address}</span>
+                    <span>${delivery.drone ? "Tildelt Drone" : "Mangler Drone"}</span>
+                    ${!delivery.drone ? '<button class="assign-drone">Tildel Drone</button>' : ''}
+                    <button class="finish-delivery">Afslut Levering</button>
+                `;
+
+                if (!delivery.drone) {
+                    const assignButton = listItem.querySelector('.assign-drone');
+                    assignButton.addEventListener('click', () => assignDroneToDelivery(delivery.id));
+                }
+
+                const finishButton = listItem.querySelector('.finish-delivery');
+                finishButton.addEventListener('click', () => finishDelivery(delivery.id));
+
+                deliveryList.appendChild(listItem);
+            });
+        })
+        .catch(error => console.error('Fejl ved hentning af leveringer:', error));
 }
 
-// Vis leveringer i listen
-function displayDeliveries(deliveries) {
-    const deliveryList = document.getElementById('delivery-list');
-    deliveryList.innerHTML = ''; // Tøm listen, før vi tilføjer nye elementer
-
-    deliveries.sort((a, b) => a.id - b.id); // Sorter efter id (ældre leveringer først)
-
-    deliveries.forEach(delivery => {
-        const listItem = document.createElement('li');
-        listItem.textContent = `Delivery ID: ${delivery.id}, Pizza: ${delivery.pizza.title}`;
-
-        if (!delivery.drone) {
-            const addDroneButton = document.createElement('button');
-            addDroneButton.textContent = 'Assign Drone';
-            addDroneButton.onclick = () => assignDroneToDelivery(delivery.id);
-            listItem.appendChild(addDroneButton);
-        } else {
-            listItem.textContent += ' - Drone Assigned';
-        }
-
-        deliveryList.appendChild(listItem);
-    });
+// Funktion til at tildele drone til levering
+function assignDroneToDelivery(deliveryId) {
+    fetch(`http://localhost:8080/deliveries/${deliveryId}/schedule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ droneId: null })
+    })
+        .then(response => response.json())
+        .then(() => fetchDeliveries());
 }
 
-// Tildel en drone til en levering
-async function assignDroneToDelivery(deliveryId) {
-    try {
-        const response = await fetch(`http://localhost:8080/deliveries/${deliveryId}/schedule`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+// Funktion til at afslutte levering
+function finishDelivery(deliveryId) {
+    fetch(`http://localhost:8080/deliveries/${deliveryId}/finish`, {
+        method: 'POST'
+    })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || "Kunne ikke afslutte leveringen uden en tilkoblet drone.");
+                });
+            }
+            return response.json();
+        })
+        .then(() => {
+            fetchDeliveries(); // Opdater listen, hvis afslutningen var succesfuld
+        })
+        .catch(error => {
+            alert(error.message); // Vis fejlbeskeden som en alert
         });
-        if (!response.ok) {
-            throw new Error("Error assigning drone");
-        }
-        const updatedDelivery = await response.json();
-        console.log("Delivery updated:", updatedDelivery);
-        fetchUnassignedDeliveries(); // Opdater listen efter tildeling
-    } catch (error) {
-        console.error("Error assigning drone:", error);
-    }
 }
-
-// Opret en ny drone
-async function createDrone() {
-    try {
-        const response = await fetch('http://localhost:8080/drones/add', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+// Funktion til at oprette en drone
+createDroneButton.addEventListener('click', () => {
+    fetch('http://localhost:8080/drones/add', {
+        method: 'POST'
+    })
+        .then(response => response.json())
+        .then(data => {
+            droneMessage.textContent = `Drone oprettet med serienummer: ${data.serialNumber}`;
+            droneMessage.style.color = "green";
+            setTimeout(() => (droneMessage.textContent = ""), 3000);
+            fetchDeliveries();
+        })
+        .catch(() => {
+            droneMessage.textContent = "Fejl ved oprettelse af drone";
+            droneMessage.style.color = "red";
         });
-        if (!response.ok) {
-            throw new Error("Error creating drone");
-        }
-        const newDrone = await response.json();
-        console.log("Drone created:", newDrone);
-    } catch (error) {
-        console.error("Error creating drone:", error);
+});
+
+// Funktion til at oprette en levering
+createDeliveryButton.addEventListener('click', () => {
+    const address = deliveryAddressInput.value.trim();
+    if (!address) {
+        alert("Indtast venligst en adresse.");
+        return;
     }
-}
 
-// Opdater leveringskøen automatisk hver 60. sekund
-setInterval(fetchUnassignedDeliveries, 60000); // Opdaterer listen hver 60. sekund
+    fetch(`http://localhost:8080/deliveries/add?pizzaId=1&address=${encodeURIComponent(address)}`, {
+        method: 'POST'
+    })
+        .then(response => response.json())
+        .then(() => {
+            deliveryAddressInput.value = '';
+            fetchDeliveries();
+        })
+        .catch(() => alert("Fejl ved oprettelse af levering."));
+});
 
-// Hent leveringer ved første indlæsning
-fetchUnassignedDeliveries();
+// Opdater leveringslisten hvert minut
+setInterval(fetchDeliveries, 60000);
+
+// Initial opdatering
+fetchDeliveries();
