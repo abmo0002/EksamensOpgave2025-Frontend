@@ -1,26 +1,37 @@
-// Hent elementer fra DOM
 const deliveryList = document.getElementById('delivery-list');
 const createDroneButton = document.getElementById('create-drone');
 const createDeliveryButton = document.getElementById('create-delivery');
 const deliveryAddressInput = document.getElementById('delivery-address');
+const pizzaSelect = document.getElementById('pizza-select');
 const droneMessage = document.getElementById('drone-message');
 
-// Funktion til at opdatere leveringslisten
+
+function fetchPizzas() {
+    fetch('http://localhost:8080/pizzas')
+        .then(response => response.json())
+        .then(pizzas => {
+            pizzas.forEach(pizza => {
+                const option = document.createElement('option');
+                option.value = pizza.id;
+                option.textContent = pizza.title;
+                pizzaSelect.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Fejl ved hentning af pizzaer:', error));
+}
+
+
 function fetchDeliveries() {
     fetch('http://localhost:8080/deliveries')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Netværksfejl');
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             deliveryList.innerHTML = '';
             data.forEach(delivery => {
                 const listItem = document.createElement('li');
+                listItem.setAttribute('data-id', delivery.id);
                 listItem.innerHTML = `
-                    <span>${delivery.pizza.name || "Ukendt Pizza"} - ${delivery.address}</span>
-                    <span>${delivery.drone ? "Tildelt Drone" : "Mangler Drone"}</span>
+                    <span>${delivery.pizza ? delivery.pizza.title : "Ukendt Pizza"} - ${delivery.address}</span>
+                    <span>${delivery.drone ? "Drone Tildelt" : "Mangler Drone"}</span>
                     ${!delivery.drone ? '<button class="assign-drone">Tildel Drone</button>' : ''}
                     <button class="finish-delivery">Afslut Levering</button>
                 `;
@@ -39,18 +50,32 @@ function fetchDeliveries() {
         .catch(error => console.error('Fejl ved hentning af leveringer:', error));
 }
 
-// Funktion til at tildele drone til levering
+
 function assignDroneToDelivery(deliveryId) {
     fetch(`http://localhost:8080/deliveries/${deliveryId}/schedule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ droneId: null })
     })
-        .then(response => response.json())
-        .then(() => fetchDeliveries());
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Fejl ved tildeling af drone.');
+            }
+            return response.json();
+        })
+        .then(() => {
+            const listItem = deliveryList.querySelector(`[data-id="${deliveryId}"]`);
+            if (listItem) {
+                const statusSpan = listItem.querySelector('span:nth-child(2)');
+                statusSpan.textContent = "Drone Tildelt";
+                const assignButton = listItem.querySelector('.assign-drone');
+                if (assignButton) assignButton.remove();
+            }
+        })
+        .catch(error => console.error('Fejl ved tildeling af drone:', error));
 }
 
-// Funktion til at afslutte levering
+
 function finishDelivery(deliveryId) {
     fetch(`http://localhost:8080/deliveries/${deliveryId}/finish`, {
         method: 'POST'
@@ -63,14 +88,11 @@ function finishDelivery(deliveryId) {
             }
             return response.json();
         })
-        .then(() => {
-            fetchDeliveries(); // Opdater listen, hvis afslutningen var succesfuld
-        })
-        .catch(error => {
-            alert(error.message); // Vis fejlbeskeden som en alert
-        });
+        .then(() => fetchDeliveries())
+        .catch(error => alert(error.message));
 }
-// Funktion til at oprette en drone
+
+
 createDroneButton.addEventListener('click', () => {
     fetch('http://localhost:8080/drones/add', {
         method: 'POST'
@@ -88,27 +110,29 @@ createDroneButton.addEventListener('click', () => {
         });
 });
 
-// Funktion til at oprette en levering
+
 createDeliveryButton.addEventListener('click', () => {
     const address = deliveryAddressInput.value.trim();
-    if (!address) {
-        alert("Indtast venligst en adresse.");
+    const pizzaId = pizzaSelect.value;
+
+    if (!address || !pizzaId) {
+        alert("Indtast både en adresse og vælg en pizza.");
         return;
     }
 
-    fetch(`http://localhost:8080/deliveries/add?pizzaId=1&address=${encodeURIComponent(address)}`, {
+    fetch(`http://localhost:8080/deliveries/add?pizzaId=${pizzaId}&address=${encodeURIComponent(address)}`, {
         method: 'POST'
     })
         .then(response => response.json())
         .then(() => {
             deliveryAddressInput.value = '';
+            pizzaSelect.value = '';
             fetchDeliveries();
         })
         .catch(() => alert("Fejl ved oprettelse af levering."));
 });
 
-// Opdater leveringslisten hvert minut
-setInterval(fetchDeliveries, 60000);
 
-// Initial opdatering
+fetchPizzas();
+setInterval(fetchDeliveries, 60000);
 fetchDeliveries();
