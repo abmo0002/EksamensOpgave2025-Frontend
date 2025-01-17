@@ -20,7 +20,6 @@ function fetchPizzas() {
         .catch(error => console.error('Fejl ved hentning af pizzaer:', error));
 }
 
-
 function fetchDeliveries() {
     fetch('http://localhost:8080/deliveries')
         .then(response => response.json())
@@ -32,6 +31,7 @@ function fetchDeliveries() {
                 listItem.innerHTML = `
                     <span>${delivery.pizza ? delivery.pizza.title : "Ukendt Pizza"} - ${delivery.address}</span>
                     <span>${delivery.drone ? "Drone Tildelt" : "Mangler Drone"}</span>
+                    <span>Forventet Leveringstid: ${new Date(delivery.expectedDeliveryTime).toLocaleString()}</span> 
                     ${!delivery.drone ? '<button class="assign-drone">Tildel Drone</button>' : ''}
                     <button class="finish-delivery">Afslut Levering</button>
                 `;
@@ -49,7 +49,6 @@ function fetchDeliveries() {
         })
         .catch(error => console.error('Fejl ved hentning af leveringer:', error));
 }
-
 
 function assignDroneToDelivery(deliveryId) {
     fetch(`http://localhost:8080/deliveries/${deliveryId}/schedule`, {
