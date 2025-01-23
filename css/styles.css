@@ -51,6 +51,7 @@ h2 {
     justify-content: space-between;
     align-items: center;
     transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    flex-direction: column;
 }
 
 #delivery-list li:hover {
@@ -61,6 +62,36 @@ h2 {
 #delivery-list li .delivery-info {
     font-size: 1.1rem;
     color: #555;
+}
+
+#delivery-list li .buttons-container {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    width: 100%;
+}
+
+#delivery-list li button {
+    background-color: #007BFF;
+    color: #fff;
+    cursor: pointer;
+    padding: 10px;
+    font-size: 1rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    max-width: 200px;
+    width: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#delivery-list li button:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+}
+
+#delivery-list li button:active {
+    background-color: #004085;
 }
 
 #actions {

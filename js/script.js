@@ -29,12 +29,14 @@ function fetchDeliveries() {
                 const listItem = document.createElement('li');
                 listItem.setAttribute('data-id', delivery.id);
                 listItem.innerHTML = `
-                    <span>${delivery.pizza ? delivery.pizza.title : "Ukendt Pizza"} - ${delivery.address}</span>
-                    <span>${delivery.drone ? "Drone Tildelt" : "Mangler Drone"}</span>
-                    <span>Forventet Leveringstid: ${new Date(delivery.expectedDeliveryTime).toLocaleString()}</span> 
-                    ${!delivery.drone ? '<button class="assign-drone">Tildel Drone</button>' : ''}
-                    <button class="finish-delivery">Afslut Levering</button>
-                `;
+    <span>${delivery.pizza ? delivery.pizza.title : "Ukendt Pizza"} - ${delivery.address}</span>
+    <span>${delivery.drone ? "Drone Tildelt" : "Mangler Drone"}</span>
+    <span>Forventet Leveringstid: ${new Date(delivery.expectedDeliveryTime).toLocaleString()}</span>
+    <div class="buttons-container">
+        ${!delivery.drone ? '<button class="assign-drone">Tildel Drone</button>' : ''}
+        <button class="finish-delivery">Afslut Levering</button>
+    </div>
+`;
 
                 if (!delivery.drone) {
                     const assignButton = listItem.querySelector('.assign-drone');
@@ -53,8 +55,8 @@ function fetchDeliveries() {
 function assignDroneToDelivery(deliveryId) {
     fetch(`http://localhost:8080/deliveries/${deliveryId}/schedule`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ droneId: null })
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({droneId: null})
     })
         .then(response => {
             if (!response.ok) {
